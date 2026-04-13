@@ -3,133 +3,194 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mathrix Input</title>
+    <title>Mathrix System</title>
     <style>
-        body { margin: 0; overflow: hidden; background: #000; font-family: monospace; }
-        canvas { position: absolute; top: 0; left: 0; z-index: 1; }
+        /* Setup full-screen dark mode */
+        body { 
+            margin: 0; 
+            padding: 0;
+            overflow: hidden; 
+            background: #000; 
+            font-family: 'Courier New', Courier, monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            height: 100vh;
+        }
+
+        /* Matrix Background */
+        canvas { 
+            position: absolute; 
+            top: 0; 
+            left: 0; 
+            z-index: 1; 
+        }
         
-        #ui-container {
-            position: absolute;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
+        /* Main UI Wrapper */
+        #interface {
+            position: relative;
             z-index: 2;
-            width: 90%;
-            max-width: 800px;
-            text-align: center;
+            width: 95%;
+            max-width: 900px;
+            margin-top: 5vh;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
         }
 
+        /* The Output Display */
         #display {
-            background: rgba(0, 0, 0, 0.8);
-            color: #0F0;
-            border: 2px solid #0F0;
-            padding: 15px;
-            font-size: 24px;
-            margin-bottom: 20px;
-            min-height: 30px;
-            border-radius: 8px;
-            text-shadow: 0 0 10px #0F0;
+            background: rgba(0, 15, 0, 0.85);
+            color: #00ff41;
+            border: 2px solid #00ff41;
+            padding: 20px;
+            font-size: 28px;
+            min-height: 40px;
+            border-radius: 5px;
+            text-shadow: 0 0 8px #00ff41;
+            box-shadow: 0 0 15px rgba(0, 255, 65, 0.2);
+            word-wrap: break-word;
         }
 
-        .keyboard {
+        /* Keyboard Container */
+        .keyboard-grid {
             display: grid;
             grid-template-columns: repeat(10, 1fr);
-            gap: 5px;
-            background: rgba(20, 20, 20, 0.9);
+            gap: 6px;
+            background: rgba(15, 15, 15, 0.9);
             padding: 15px;
-            border-radius: 12px;
-            border: 1px solid #333;
+            border-radius: 10px;
+            border: 1px solid #00ff41;
         }
 
+        /* Key Styling */
         button {
-            padding: 12px 0;
-            background: #222;
-            color: #eee;
-            border: 1px solid #444;
+            padding: 15px 0;
+            background: #111;
+            color: #00ff41;
+            border: 1px solid #222;
             border-radius: 4px;
             cursor: pointer;
-            font-size: 16px;
-            transition: 0.1s;
+            font-size: 18px;
+            font-weight: bold;
+            transition: all 0.1s ease;
+            user-select: none;
         }
 
-        button:active { background: #0F0; color: #000; transform: translateY(2px); }
-        
-        .wide { grid-column: span 2; background: #333; }
-        .extra-wide { grid-column: span 4; }
+        button:hover {
+            background: #1a1a1a;
+            border-color: #00ff41;
+        }
+
+        button:active {
+            background: #00ff41;
+            color: #000;
+            transform: scale(0.95);
+        }
+
+        /* Special Keys */
+        .span-2 { grid-column: span 2; background: #1a1a1a; }
+        .span-5 { grid-column: span 5; background: #0a2a0a; }
+        .del-key { color: #ff3333; border-color: #551111; }
     </style>
 </head>
 <body>
-    <canvas id="matrix"></canvas>
 
-    <div id="ui-container">
+    <canvas id="matrixCanvas"></canvas>
+
+    <div id="interface">
         <div id="display">_</div>
-        <div class="keyboard" id="kb"></div>
+        <div class="keyboard-grid" id="keyboard"></div>
     </div>
 
     <script>
-        // --- MATRIX BACKGROUND LOGIC ---
-        const canvas = document.getElementById('matrix');
+        // --- 1. MATRIX ENGINE ---
+        const canvas = document.getElementById('matrixCanvas');
         const ctx = canvas.getContext('2d');
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
 
-        const mathSymbols = '∑π∞√∫∆θλfx=≠±≥≤∿0123456789';
-        const fontSize = 16;
-        const drops = Array(Math.floor(canvas.width / fontSize)).fill(1);
+        function resize() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.onresize = resize;
+        resize();
+
+        const symbols = "0123456789∑π∞√∫∆θλf(x)=≠±≥≤∿ABCDEFGHIKLMNOPQRSTUVWXYZ";
+        const fontSize = 18;
+        const columns = Math.floor(canvas.width / fontSize);
+        const drops = Array(columns).fill(1);
 
         function drawMatrix() {
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
+            ctx.fillStyle = "rgba(0, 0, 0, 0.08)";
             ctx.fillRect(0, 0, canvas.width, canvas.height);
-            ctx.fillStyle = '#0F0';
-            ctx.font = fontSize + 'px monospace';
-            drops.forEach((y, i) => {
-                const text = mathSymbols[Math.floor(Math.random() * mathSymbols.length)];
-                ctx.fillText(text, i * fontSize, y * fontSize);
-                if (y * fontSize > canvas.height && Math.random() > 0.975) drops[i] = 0;
+            
+            ctx.fillStyle = "#00ff41";
+            ctx.font = fontSize + "px monospace";
+
+            for (let i = 0; i < drops.length; i++) {
+                const text = symbols[Math.floor(Math.random() * symbols.length)];
+                ctx.fillText(text, i * fontSize, drops[i] * fontSize);
+
+                if (drops[i] * fontSize > canvas.height && Math.random() > 0.98) {
+                    drops[i] = 0;
+                }
                 drops[i]++;
-            });
+            }
         }
-        setInterval(drawMatrix, 35);
+        setInterval(drawMatrix, 40);
 
-        // --- CUSTOM KEYBOARD LOGIC ---
+        // --- 2. KEYBOARD ENGINE ---
         const display = document.getElementById('display');
-        const kb = document.getElementById('kb');
-        let currentText = "";
+        const kbContainer = document.getElementById('keyboard');
+        let buffer = "";
 
-        // Keys: Numbers, Math, and Letters
-        const keys = [
+        const keyLayout = [
             '1','2','3','4','5','6','7','8','9','0',
             'Q','W','E','R','T','Y','U','I','O','P',
             'A','S','D','F','G','H','J','K','L', '=',
             'Z','X','C','V','B','N','M', 'π', '∑', '∞',
-            '√', '∫', 'Δ', 'θ', 'f', '(', ')', '+', '-', '×'
+            '√', '∫', '∆', 'θ', 'λ', 'f', '(', ')', '+', '-',
+            '×', '÷', '<', '>', '[', ']', '{', '}', '.', ','
         ];
 
-        keys.forEach(key => {
+        // Generate standard keys
+        keyLayout.forEach(key => {
             const btn = document.createElement('button');
-            btn.innerText = key;
-            btn.onclick = () => { currentText += key; updateDisplay(); };
-            kb.appendChild(btn);
+            btn.textContent = key;
+            btn.onclick = () => addChar(key);
+            kbContainer.appendChild(btn);
         });
 
-        // Add special keys
-        const space = document.createElement('button');
-        space.innerText = "SPACE"; space.className = "extra-wide";
-        space.onclick = () => { currentText += " "; updateDisplay(); };
-        
-        const back = document.createElement('button');
-        back.innerText = "DEL"; back.className = "wide";
-        back.onclick = () => { currentText = currentText.slice(0, -1); updateDisplay(); };
+        // Add special function keys
+        const createSpecialKey = (label, classes, action) => {
+            const btn = document.createElement('button');
+            btn.textContent = label;
+            btn.className = classes;
+            btn.onclick = action;
+            kbContainer.appendChild(btn);
+        };
 
-        const clear = document.createElement('button');
-        clear.innerText = "CLEAR"; clear.className = "wide";
-        clear.onclick = () => { currentText = ""; updateDisplay(); };
+        createSpecialKey("SPACE", "span-5", () => addChar(" "));
+        createSpecialKey("DEL", "span-2 del-key", () => {
+            buffer = buffer.slice(0, -1);
+            updateDisplay();
+        });
+        createSpecialKey("CLEAR", "span-3 del-key", () => {
+            buffer = "";
+            updateDisplay();
+        });
 
-        kb.append(space, back, clear);
+        function addChar(char) {
+            buffer += char;
+            updateDisplay();
+        }
 
         function updateDisplay() {
-            display.innerText = currentText + "_";
+            display.textContent = buffer + (Math.floor(Date.now() / 500) % 2 ? "_" : " ");
         }
+
+        // Blinking cursor effect
+        setInterval(updateDisplay, 500);
     </script>
 </body>
 </html>
